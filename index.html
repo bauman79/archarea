@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>건축면적 검토 계산기</title>
+    <style>
+      :root {
+        --bg: #f6f8fb;
+        --card: #ffffff;
+        --line: #d8dee8;
+        --text: #1f2937;
+        --muted: #6b7280;
+        --primary: #2563eb;
+        --danger: #dc2626;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", sans-serif;
+      }
+      .container {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 16px;
+        display: grid;
+        gap: 16px;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 14px;
+      }
+      h1, h2, h3 { margin: 0 0 10px; }
+      h1 { font-size: 1.3rem; }
+      h2 { font-size: 1.05rem; }
+      h3 { font-size: 1rem; }
+      .grid {
+        display: grid;
+        gap: 10px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      label {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        font-size: .9rem;
+        color: var(--muted);
+      }
+      input, select, button {
+        font: inherit;
+        padding: 8px 10px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+        color: var(--text);
+      }
+      button {
+        cursor: pointer;
+      }
+      .btn-primary {
+        background: var(--primary);
+        border-color: var(--primary);
+        color: #fff;
+      }
+      .btn-danger {
+        background: var(--danger);
+        border-color: var(--danger);
+        color: #fff;
+      }
+      .row {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .kpi {
+        display: grid;
+        gap: 10px;
+        grid-template-columns: repeat(4, minmax(0,1fr));
+      }
+      .kpi-item {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 10px;
+      }
+      .kpi-item .name { color: var(--muted); font-size: .85rem; }
+      .kpi-item .value { font-size: 1.1rem; font-weight: 700; margin-top: 4px; }
+      .floor {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 10px;
+        margin-top: 10px;
+      }
+      .floor-top {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 8px;
+      }
+      th, td {
+        border: 1px solid var(--line);
+        padding: 6px;
+        text-align: left;
+      }
+      .muted { color: var(--muted); font-size: .85rem; }
+      @media (max-width: 760px) {
+        .grid, .kpi { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="container">
+      <section class="card">
+        <h1>건축면적 검토용 계산기</h1>
+        <div class="grid">
+          <label>대지면적 (㎡)
+            <input id="siteArea" type="number" min="0" step="0.01" value="1000" />
+          </label>
+          <div class="row" style="align-self:end;">
+            <button id="addGround" class="btn-primary">지상층 추가</button>
+            <button id="addBasement">지하층 추가</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>요약</h2>
+        <div class="kpi">
+          <div class="kpi-item"><div class="name">지상 연면적</div><div id="grossAbove" class="value">0 ㎡</div></div>
+          <div class="kpi-item"><div class="name">건축면적(최대층)</div><div id="buildingArea" class="value">0 ㎡</div></div>
+          <div class="kpi-item"><div class="name">용적률</div><div id="far" class="value">0 %</div></div>
+          <div class="kpi-item"><div class="name">건폐율</div><div id="bcr" class="value">0 %</div></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>주차 계산</h2>
+        <div class="grid">
+          <label>기준 면적 (㎡/1대, 기본 100)
+            <input id="parkingBase" type="number" min="0.01" step="0.01" value="100" />
+          </label>
+          <label>배수
+            <input id="parkingMultiplier" type="number" min="0" step="0.01" value="1" />
+          </label>
+          <label>법정 주차대수 (임의 수정 가능)
+            <input id="legalParking" type="number" min="0" step="0.01" />
+          </label>
+          <label>1대당 면적 (㎡, 기본 38)
+            <input id="areaPerCar" type="number" min="0.01" step="0.01" value="38" />
+          </label>
+        </div>
+        <p class="muted">지상 연면적 기반 자동값을 넣되, 법정 주차대수는 직접 수정할 수 있습니다.</p>
+        <h3 id="parkingArea">주차장 필요면적: 0 ㎡</h3>
+      </section>
+
+      <section class="card">
+        <h2>층별 입력</h2>
+        <div id="floors"></div>
+      </section>
+    </main>
+
+    <template id="floorTemplate">
+      <article class="floor">
+        <div class="floor-top">
+          <div class="row">
+            <label>구분
+              <select class="floor-type">
+                <option value="above">지상</option>
+                <option value="below">지하</option>
+              </select>
+            </label>
+            <label>층명
+              <input class="floor-name" type="text" placeholder="예: 1층, B1" />
+            </label>
+            <label>공용면적 (㎡)
+              <input class="common-area" type="number" min="0" step="0.01" value="0" />
+            </label>
+          </div>
+          <button class="btn-danger remove-floor">층 삭제</button>
+        </div>
+
+        <table>
+          <thead>
+            <tr><th>실명</th><th>면적 (㎡)</th><th>삭제</th></tr>
+          </thead>
+          <tbody class="rooms"></tbody>
+        </table>
+        <div class="row" style="margin-top:8px;">
+          <button class="add-room">실 추가</button>
+          <span class="muted exclusive-sum">전용면적 합: 0 ㎡</span>
+          <span class="muted floor-total">층 합계(전용+공용): 0 ㎡</span>
+        </div>
+      </article>
+    </template>
+
+    <script>
+      const floorsEl = document.getElementById('floors');
+      const floorTemplate = document.getElementById('floorTemplate');
+
+      const siteAreaEl = document.getElementById('siteArea');
+      const grossAboveEl = document.getElementById('grossAbove');
+      const buildingAreaEl = document.getElementById('buildingArea');
+      const farEl = document.getElementById('far');
+      const bcrEl = document.getElementById('bcr');
+
+      const parkingBaseEl = document.getElementById('parkingBase');
+      const parkingMultiplierEl = document.getElementById('parkingMultiplier');
+      const legalParkingEl = document.getElementById('legalParking');
+      const areaPerCarEl = document.getElementById('areaPerCar');
+      const parkingAreaEl = document.getElementById('parkingArea');
+
+      const fmt = (n) => Number.isFinite(n) ? n.toLocaleString('ko-KR', { maximumFractionDigits: 2 }) : '0';
+      const num = (el) => parseFloat(el.value) || 0;
+
+      function createRoomRow(name = '', area = 0) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><input class="room-name" type="text" placeholder="실명" value="${name}"/></td>
+          <td><input class="room-area" type="number" min="0" step="0.01" value="${area}"/></td>
+          <td><button class="remove-room">삭제</button></td>
+        `;
+
+        tr.querySelector('.remove-room').addEventListener('click', () => {
+          tr.remove();
+          recalc();
+        });
+        tr.querySelector('.room-name').addEventListener('input', recalc);
+        tr.querySelector('.room-area').addEventListener('input', recalc);
+        return tr;
+      }
+
+      function addFloor(type = 'above') {
+        const node = floorTemplate.content.firstElementChild.cloneNode(true);
+        const typeEl = node.querySelector('.floor-type');
+        typeEl.value = type;
+        node.querySelector('.floor-name').value = type === 'above' ? `${document.querySelectorAll('.floor').length + 1}층` : `B${document.querySelectorAll('.floor').length + 1}`;
+
+        const roomsEl = node.querySelector('.rooms');
+        roomsEl.appendChild(createRoomRow('기본실', 0));
+
+        node.querySelector('.add-room').addEventListener('click', () => {
+          roomsEl.appendChild(createRoomRow('', 0));
+          recalc();
+        });
+        node.querySelector('.remove-floor').addEventListener('click', () => {
+          node.remove();
+          recalc();
+        });
+
+        ['.floor-type', '.floor-name', '.common-area'].forEach((sel) => {
+          node.querySelector(sel).addEventListener('input', recalc);
+        });
+
+        floorsEl.appendChild(node);
+        recalc();
+      }
+
+      function recalc() {
+        const siteArea = num(siteAreaEl);
+
+        let grossAbove = 0;
+        let maxFloorArea = 0;
+
+        document.querySelectorAll('.floor').forEach((floor) => {
+          const type = floor.querySelector('.floor-type').value;
+          const common = num(floor.querySelector('.common-area'));
+          const roomAreas = [...floor.querySelectorAll('.room-area')].map((el) => parseFloat(el.value) || 0);
+          const exclusive = roomAreas.reduce((a, b) => a + b, 0);
+          const total = exclusive + common;
+
+          floor.querySelector('.exclusive-sum').textContent = `전용면적 합: ${fmt(exclusive)} ㎡`;
+          floor.querySelector('.floor-total').textContent = `층 합계(전용+공용): ${fmt(total)} ㎡`;
+
+          if (type === 'above') grossAbove += total;
+          if (total > maxFloorArea) maxFloorArea = total;
+        });
+
+        const far = siteArea > 0 ? (grossAbove / siteArea) * 100 : 0;
+        const bcr = siteArea > 0 ? (maxFloorArea / siteArea) * 100 : 0;
+
+        grossAboveEl.textContent = `${fmt(grossAbove)} ㎡`;
+        buildingAreaEl.textContent = `${fmt(maxFloorArea)} ㎡`;
+        farEl.textContent = `${fmt(far)} %`;
+        bcrEl.textContent = `${fmt(bcr)} %`;
+
+        const suggestedLegal = (grossAbove / Math.max(num(parkingBaseEl), 0.01)) * num(parkingMultiplierEl);
+        if (document.activeElement !== legalParkingEl) {
+          legalParkingEl.value = suggestedLegal.toFixed(2);
+        }
+        const legal = num(legalParkingEl);
+        const parkingArea = legal * Math.max(num(areaPerCarEl), 0.01);
+        parkingAreaEl.textContent = `주차장 필요면적: ${fmt(parkingArea)} ㎡`;
+      }
+
+      document.getElementById('addGround').addEventListener('click', () => addFloor('above'));
+      document.getElementById('addBasement').addEventListener('click', () => addFloor('below'));
+      [siteAreaEl, parkingBaseEl, parkingMultiplierEl, legalParkingEl, areaPerCarEl].forEach((el) => el.addEventListener('input', recalc));
+
+      addFloor('above');
+      recalc();
+    </script>
+  </body>
+</html>
